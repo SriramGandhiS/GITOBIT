@@ -164,17 +164,38 @@ async function fetchFileContent(profile, repo, path) {
 
 // Fetch Decrypted Tokens from local server
 async function fetchTokens() {
+  // Load from localStorage first to enable cloud/Netlify mode
+  try {
+    const storedSriram = localStorage.getItem("git_rip_token_sriram");
+    const storedSuriya = localStorage.getItem("git_rip_token_suriya");
+    const storedRizz = localStorage.getItem("git_rip_token_rizz");
+    if (storedSriram) profiles.sriram.token = storedSriram;
+    if (storedSuriya) profiles.suriya.token = storedSuriya;
+    if (storedRizz) profiles.rizz.token = storedRizz;
+  } catch (e) {
+    console.warn("Could not load tokens from localStorage:", e);
+  }
+
   try {
     const res = await fetch(`${LOCAL_API}/api/tokens`);
     if (res.ok) {
       const tokens = await res.json();
-      if (tokens.sriram) profiles.sriram.token = tokens.sriram;
-      if (tokens.suriya) profiles.suriya.token = tokens.suriya;
-      if (tokens.rizz) profiles.rizz.token = tokens.rizz;
-      console.log("Successfully retrieved decrypted local tokens from API.");
+      if (tokens.sriram) {
+        profiles.sriram.token = tokens.sriram;
+        localStorage.setItem("git_rip_token_sriram", tokens.sriram);
+      }
+      if (tokens.suriya) {
+        profiles.suriya.token = tokens.suriya;
+        localStorage.setItem("git_rip_token_suriya", tokens.suriya);
+      }
+      if (tokens.rizz) {
+        profiles.rizz.token = tokens.rizz;
+        localStorage.setItem("git_rip_token_rizz", tokens.rizz);
+      }
+      console.log("Successfully retrieved decrypted local tokens from API and saved to localStorage.");
     }
   } catch (e) {
-    console.warn("Could not retrieve local tokens from API. Using local variables.", e);
+    console.warn("Could not retrieve local tokens from API. Using cached or local variables.", e);
   }
 }
 
@@ -186,15 +207,47 @@ async function fetchSchedulerConfig() {
       const data = await res.json();
       if (data.schedule) {
         schedulerTimes = data.schedule;
+        localStorage.setItem("git_rip_scheduler_times", JSON.stringify(data.schedule));
       }
     }
   } catch (e) {
-    console.warn("Could not fetch scheduler configs.", e);
+    console.warn("Could not fetch scheduler configs. Using cache.", e);
+    try {
+      const cached = localStorage.getItem("git_rip_scheduler_times");
+      if (cached) schedulerTimes = JSON.parse(cached);
+    } catch (err) {}
   }
 }
 
-// Helper to fetch local state files from the helper server
-async function fetchLocalState(filename) {
+// Helper to fetch state files (tries GitHub first, falls back to local API)
+async function fetchStateFile(profile, filename) {
+  // If token is present, try loading directly from GitHub to support Netlify/Cloud mode!
+  if (profile && profile.token) {
+    try {
+      let repo = profile.coreRepo;
+      let path = "";
+      if (filename === "leetcode_sync_idx.json") {
+        path = ".github/scripts/leetcode_sync_idx.json";
+      } else if (filename === "dsa_progress.json") {
+        path = ".github/scripts/dsa_progress.json";
+      } else if (filename === "railflow_state.json") {
+        repo = profile.railflowRepo || "RailFlow";
+        path = ".github/scripts/railflow_state.json";
+      }
+      
+      if (path) {
+        const data = await fetchFileContent(profile, repo, path);
+        if (data) {
+          console.log(`Cloud Mode: Fetched ${filename} directly from GitHub repo ${repo}`);
+          return data;
+        }
+      }
+    } catch (err) {
+      console.warn(`Failed to fetch ${filename} from GitHub, falling back to local:`, err);
+    }
+  }
+
+  // Fallback to local server API
   try {
     const res = await fetch(`${LOCAL_API}/api/local-state?file=${filename}`);
     if (res.ok) {
@@ -287,9 +340,9 @@ async function fetchLiveStatus() {
     // Sort combined commits from all repos - limit to exactly top 5
     data.commits_today = commitsResults.flat().sort((a, b) => new Date(b.rawTime) - new Date(a.rawTime));
 
-    // 3. Fetch LeetCode status state (Local API)
+    // 3. Fetch LeetCode status state (Local API / Cloud API)
     if (profile.username === "SriramGandhiS") {
-      const lcState = await fetchLocalState("leetcode_sync_idx.json");
+      const lcState = await fetchStateFile(profile, "leetcode_sync_idx.json");
       if (lcState) {
         data.leetcode = {
           todayCount: lcState.today_submitted || 0,
@@ -299,8 +352,8 @@ async function fetchLiveStatus() {
         };
       }
 
-      // 4. Fetch DSA state (Local API)
-      const dsaState = await fetchLocalState("dsa_progress.json");
+      // 4. Fetch DSA state (Local API / Cloud API)
+      const dsaState = await fetchStateFile(profile, "dsa_progress.json");
       if (dsaState) {
         const doneToday = dsaState.done_today?.[todayStr] || [];
         const target = dsaState.target_today || 10; // Default to 10 if not in state
@@ -313,8 +366,8 @@ async function fetchLiveStatus() {
         };
       }
 
-      // 5. Fetch RailFlow state (Local API)
-      const rfState = await fetchLocalState("railflow_state.json");
+      // 5. Fetch RailFlow state (Local API / Cloud API)
+      const rfState = await fetchStateFile(profile, "railflow_state.json");
       if (rfState) {
         const commitsToday = (data.repo_details["RailFlow"] || []).length;
         data.railflow = {
