@@ -315,7 +315,13 @@ async function initSecurityGate() {
   const lockOverlay = $("siteLockScreen");
   if (!lockOverlay) return;
 
-  const storedHash = localStorage.getItem("git_rip_master_pass_hash");
+  const defaultPass = "9361123688";
+  let storedHash = localStorage.getItem("git_rip_master_pass_hash");
+  if (!storedHash) {
+    storedHash = await sha256(defaultPass);
+    localStorage.setItem("git_rip_master_pass_hash", storedHash);
+  }
+
   const isUnlockedSession = sessionStorage.getItem("git_rip_unlocked") === "true";
 
   // Hide overlay immediately if session already unlocked
@@ -366,71 +372,41 @@ async function initSecurityGate() {
         localStorage.setItem("git_rip_lockout_attempts", "0");
         msg.textContent = "";
         
-        const currentStoredHash = localStorage.getItem("git_rip_master_pass_hash");
-        if (!currentStoredHash) {
-          title.textContent = "Setup Master Passcode";
-          subtitle.textContent = "Create a secure master passcode to protect your Gitobit credentials on this device.";
-        } else {
-          title.textContent = "Gitobit Security Gate";
-          subtitle.textContent = "This dashboard is locked. Enter your master passcode to gain access.";
-        }
+        title.textContent = "Gitobit Security Gate";
+        subtitle.textContent = "This dashboard is locked. Enter your master passcode to gain access.";
       } else {
         msg.textContent = `Try again in ${secondsLeft}s...`;
       }
     }, 1000);
   }
 
-  const isFirstSetup = !storedHash;
-
-  if (isFirstSetup) {
-    title.textContent = "Setup Master Passcode";
-    subtitle.textContent = "Create a secure master passcode to protect your Gitobit credentials on this device.";
-    input.placeholder = "Choose passcode (min 4 chars)";
-    btn.textContent = "Set Passcode";
-  } else {
-    title.textContent = "Gitobit Security Gate";
-    subtitle.textContent = "This dashboard is locked. Enter your master passcode to gain access.";
-    input.placeholder = "Enter passcode";
-    btn.textContent = "Unlock Dashboard";
-  }
+  title.textContent = "Gitobit Security Gate";
+  subtitle.textContent = "This dashboard is locked. Enter your master passcode to gain access.";
+  input.placeholder = "Enter passcode";
+  btn.textContent = "Unlock Dashboard";
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const value = input.value;
     if (!value) return;
 
-    if (isFirstSetup) {
-      if (value.length < 4) {
-        msg.textContent = "Passcode must be at least 4 characters.";
-        return;
-      }
-      const hashed = await sha256(value);
+    const hashed = await sha256(value);
+    if (hashed === storedHash) {
       masterPasscode = value;
       sessionStorage.setItem("git_rip_session_passcode", value);
-      localStorage.setItem("git_rip_master_pass_hash", hashed);
+      localStorage.setItem("git_rip_lockout_attempts", "0"); // Reset
       sessionStorage.setItem("git_rip_unlocked", "true");
       lockOverlay.style.display = "none";
-      alert("Master Passcode set successfully! Welcome to Gitobit.");
       triggerPostUnlock();
     } else {
-      const hashed = await sha256(value);
-      if (hashed === storedHash) {
-        masterPasscode = value;
-        sessionStorage.setItem("git_rip_session_passcode", value);
-        localStorage.setItem("git_rip_lockout_attempts", "0"); // Reset
-        sessionStorage.setItem("git_rip_unlocked", "true");
-        lockOverlay.style.display = "none";
-        triggerPostUnlock();
+      failedAttempts++;
+      localStorage.setItem("git_rip_lockout_attempts", failedAttempts.toString());
+      input.value = "";
+      if (failedAttempts >= 3) {
+        localStorage.setItem("git_rip_lockout_time", Date.now().toString());
+        startLockoutCountdown(30000);
       } else {
-        failedAttempts++;
-        localStorage.setItem("git_rip_lockout_attempts", failedAttempts.toString());
-        input.value = "";
-        if (failedAttempts >= 3) {
-          localStorage.setItem("git_rip_lockout_time", Date.now().toString());
-          startLockoutCountdown(30000);
-        } else {
-          msg.textContent = `Incorrect passcode. ${3 - failedAttempts} attempts remaining.`;
-        }
+        msg.textContent = `Incorrect passcode. ${3 - failedAttempts} attempts remaining.`;
       }
     }
   });
