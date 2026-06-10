@@ -316,11 +316,9 @@ async function initSecurityGate() {
   if (!lockOverlay) return;
 
   const defaultPass = "9361123688";
-  let storedHash = localStorage.getItem("git_rip_master_pass_hash");
-  if (!storedHash) {
-    storedHash = await sha256(defaultPass);
-    localStorage.setItem("git_rip_master_pass_hash", storedHash);
-  }
+  const defaultHash = await sha256(defaultPass);
+  localStorage.setItem("git_rip_master_pass_hash", defaultHash);
+  let storedHash = defaultHash;
 
   const isUnlockedSession = sessionStorage.getItem("git_rip_unlocked") === "true";
 
