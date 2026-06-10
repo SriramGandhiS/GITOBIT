@@ -162,74 +162,147 @@ async function fetchFileContent(profile, repo, path) {
   return null;
 }
 
-// ── URL HASH TOKEN IMPORT (for mobile link sharing) ──
-function importTokensFromHash() {
+// ── SECURE TOKEN SHARING (AES-256-GCM encrypted) ──
+
+// Derive a crypto key from a PIN using PBKDF2
+async function deriveKey(pin, salt) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw", enc.encode(pin), "PBKDF2", false, ["deriveKey"]
+  );
+  return crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
+}
+
+// Encrypt token data with PIN → returns base64 string
+async function encryptTokenData(tokenData, pin) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(pin, salt);
+  const enc = new TextEncoder();
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    enc.encode(JSON.stringify(tokenData))
+  );
+  // Pack: salt(16) + iv(12) + ciphertext
+  const packed = new Uint8Array(salt.length + iv.length + ciphertext.byteLength);
+  packed.set(salt, 0);
+  packed.set(iv, salt.length);
+  packed.set(new Uint8Array(ciphertext), salt.length + iv.length);
+  return btoa(String.fromCharCode(...packed));
+}
+
+// Decrypt token data with PIN → returns parsed JSON or null
+async function decryptTokenData(encoded, pin) {
   try {
-    const hash = window.location.hash;
-    if (!hash || !hash.startsWith("#tokens=")) return false;
-    
-    const encoded = hash.substring(8); // remove '#tokens='
-    const decoded = JSON.parse(atob(decodeURIComponent(encoded)));
-    
-    if (decoded.sriram) {
-      profiles.sriram.token = decoded.sriram;
-      localStorage.setItem("git_rip_token_sriram", decoded.sriram);
-    }
-    if (decoded.suriya) {
-      profiles.suriya.token = decoded.suriya;
-      localStorage.setItem("git_rip_token_suriya", decoded.suriya);
-    }
-    if (decoded.rizz) {
-      profiles.rizz.token = decoded.rizz;
-      localStorage.setItem("git_rip_token_rizz", decoded.rizz);
-    }
-    
-    // Clean hash from URL bar for security (tokens shouldn't linger)
-    history.replaceState(null, "", window.location.pathname + window.location.search);
-    console.log("Tokens imported from shared link successfully!");
-    return true;
+    const packed = Uint8Array.from(atob(encoded), c => c.charCodeAt(0));
+    const salt = packed.slice(0, 16);
+    const iv = packed.slice(16, 28);
+    const ciphertext = packed.slice(28);
+    const key = await deriveKey(pin, salt);
+    const decrypted = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv },
+      key,
+      ciphertext
+    );
+    return JSON.parse(new TextDecoder().decode(decrypted));
   } catch (e) {
-    console.warn("Failed to import tokens from URL hash:", e);
-    return false;
+    return null; // wrong PIN or corrupted data
   }
 }
 
-// Generate a shareable mobile link with tokens encoded in URL hash
-function generateMobileLink() {
+// Check URL hash for encrypted tokens → prompt for PIN → import
+async function importTokensFromHash() {
+  const hash = window.location.hash;
+  if (!hash || !hash.startsWith("#secure=")) return false;
+
+  const encrypted = decodeURIComponent(hash.substring(8));
+
+  // Immediately clean hash from URL bar
+  history.replaceState(null, "", window.location.pathname + window.location.search);
+
+  // Prompt for PIN
+  const pin = prompt("Enter the PIN you set on desktop to unlock tokens:");
+  if (!pin) return false;
+
+  const decoded = await decryptTokenData(encrypted, pin);
+  if (!decoded) {
+    alert("Wrong PIN or corrupted link. Tokens not imported.");
+    return false;
+  }
+
+  if (decoded.sriram) {
+    profiles.sriram.token = decoded.sriram;
+    localStorage.setItem("git_rip_token_sriram", decoded.sriram);
+  }
+  if (decoded.suriya) {
+    profiles.suriya.token = decoded.suriya;
+    localStorage.setItem("git_rip_token_suriya", decoded.suriya);
+  }
+  if (decoded.rizz) {
+    profiles.rizz.token = decoded.rizz;
+    localStorage.setItem("git_rip_token_rizz", decoded.rizz);
+  }
+
+  console.log("Tokens imported from encrypted share link!");
+  alert("Tokens imported successfully! Dashboard will now load.");
+  return true;
+}
+
+// Generate encrypted mobile link (prompts for PIN)
+async function copyMobileLink() {
   const tokenData = {};
   if (profiles.sriram.token) tokenData.sriram = profiles.sriram.token;
   if (profiles.suriya.token) tokenData.suriya = profiles.suriya.token;
   if (profiles.rizz.token) tokenData.rizz = profiles.rizz.token;
-  
-  const encoded = encodeURIComponent(btoa(JSON.stringify(tokenData)));
-  const baseUrl = window.location.origin + window.location.pathname;
-  return `${baseUrl}#tokens=${encoded}`;
-}
 
-// Copy mobile link to clipboard
-async function copyMobileLink() {
-  const link = generateMobileLink();
+  if (Object.keys(tokenData).length === 0) {
+    alert("No tokens to share. Save your tokens first.");
+    return;
+  }
+
+  const pin = prompt("Set a PIN to encrypt your tokens (you'll enter this on mobile):");
+  if (!pin || pin.length < 4) {
+    alert("PIN must be at least 4 characters.");
+    return;
+  }
+
+  const confirmPin = prompt("Confirm your PIN:");
+  if (confirmPin !== pin) {
+    alert("PINs don't match. Try again.");
+    return;
+  }
+
   try {
+    const encrypted = await encryptTokenData(tokenData, pin);
+    const baseUrl = window.location.origin + window.location.pathname;
+    const link = `${baseUrl}#secure=${encodeURIComponent(encrypted)}`;
+
     await navigator.clipboard.writeText(link);
     const btn = $("btnCopyMobileLink");
     if (btn) {
-      const orig = btn.textContent;
       btn.textContent = "Copied!";
       btn.style.background = "#10b981";
       btn.style.color = "#fff";
-      setTimeout(() => { btn.textContent = orig; btn.style.background = ""; btn.style.color = ""; }, 2000);
+      setTimeout(() => { btn.textContent = "Copy Mobile Link"; btn.style.background = ""; btn.style.color = ""; }, 3000);
     }
+    alert("Encrypted link copied! Send it to your phone and open it there.\nYou'll need to enter the same PIN on mobile.");
   } catch (e) {
-    // Fallback: show in a prompt
-    prompt("Copy this link and open on your phone:", link);
+    prompt("Copy this encrypted link manually:", `${window.location.origin}${window.location.pathname}#secure=${encodeURIComponent(await encryptTokenData(tokenData, pin))}`);
   }
 }
 window.copyMobileLink = copyMobileLink;
 
 // Fetch Decrypted Tokens from local server
 async function fetchTokens() {
-  // FIRST: Check if tokens are being passed via URL hash (mobile share link)
-  importTokensFromHash();
+  // FIRST: Check if encrypted tokens are in the URL hash (mobile share link)
+  await importTokensFromHash();
 
   // Load from localStorage to enable cloud/Netlify mode
   try {
