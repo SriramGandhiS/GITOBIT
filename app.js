@@ -162,9 +162,76 @@ async function fetchFileContent(profile, repo, path) {
   return null;
 }
 
+// ── URL HASH TOKEN IMPORT (for mobile link sharing) ──
+function importTokensFromHash() {
+  try {
+    const hash = window.location.hash;
+    if (!hash || !hash.startsWith("#tokens=")) return false;
+    
+    const encoded = hash.substring(8); // remove '#tokens='
+    const decoded = JSON.parse(atob(decodeURIComponent(encoded)));
+    
+    if (decoded.sriram) {
+      profiles.sriram.token = decoded.sriram;
+      localStorage.setItem("git_rip_token_sriram", decoded.sriram);
+    }
+    if (decoded.suriya) {
+      profiles.suriya.token = decoded.suriya;
+      localStorage.setItem("git_rip_token_suriya", decoded.suriya);
+    }
+    if (decoded.rizz) {
+      profiles.rizz.token = decoded.rizz;
+      localStorage.setItem("git_rip_token_rizz", decoded.rizz);
+    }
+    
+    // Clean hash from URL bar for security (tokens shouldn't linger)
+    history.replaceState(null, "", window.location.pathname + window.location.search);
+    console.log("Tokens imported from shared link successfully!");
+    return true;
+  } catch (e) {
+    console.warn("Failed to import tokens from URL hash:", e);
+    return false;
+  }
+}
+
+// Generate a shareable mobile link with tokens encoded in URL hash
+function generateMobileLink() {
+  const tokenData = {};
+  if (profiles.sriram.token) tokenData.sriram = profiles.sriram.token;
+  if (profiles.suriya.token) tokenData.suriya = profiles.suriya.token;
+  if (profiles.rizz.token) tokenData.rizz = profiles.rizz.token;
+  
+  const encoded = encodeURIComponent(btoa(JSON.stringify(tokenData)));
+  const baseUrl = window.location.origin + window.location.pathname;
+  return `${baseUrl}#tokens=${encoded}`;
+}
+
+// Copy mobile link to clipboard
+async function copyMobileLink() {
+  const link = generateMobileLink();
+  try {
+    await navigator.clipboard.writeText(link);
+    const btn = $("btnCopyMobileLink");
+    if (btn) {
+      const orig = btn.textContent;
+      btn.textContent = "Copied!";
+      btn.style.background = "#10b981";
+      btn.style.color = "#fff";
+      setTimeout(() => { btn.textContent = orig; btn.style.background = ""; btn.style.color = ""; }, 2000);
+    }
+  } catch (e) {
+    // Fallback: show in a prompt
+    prompt("Copy this link and open on your phone:", link);
+  }
+}
+window.copyMobileLink = copyMobileLink;
+
 // Fetch Decrypted Tokens from local server
 async function fetchTokens() {
-  // Load from localStorage first to enable cloud/Netlify mode
+  // FIRST: Check if tokens are being passed via URL hash (mobile share link)
+  importTokensFromHash();
+
+  // Load from localStorage to enable cloud/Netlify mode
   try {
     const storedSriram = localStorage.getItem("git_rip_token_sriram");
     const storedSuriya = localStorage.getItem("git_rip_token_suriya");
@@ -941,6 +1008,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("tokensModal").classList.remove("open");
     fetchLiveStatus();
   });
+
+  // Copy Mobile Link button
+  const copyBtn = $("btnCopyMobileLink");
+  if (copyBtn) {
+    copyBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      copyMobileLink();
+    });
+  }
 
   // Clock runner - Indian 12-Hour Clock
   function runClock() {

@@ -567,9 +567,14 @@
         <input type="password" id="inputTokenRizz" placeholder="github_pat_..." style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
       </div>
       
-      <div style="display:flex; justify-content:flex-end; gap:12px;">
+      <div style="display:flex; justify-content:flex-end; gap:12px; flex-wrap: wrap;">
+        <button id="btnCopyMobileLink" style="padding:10px 20px; font-size:12px; font-weight:600; border:1px solid #e2e8f0; background:#f8fafc; color:#334155; border-radius:12px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:6px;" onmouseover="this.style.background='#e0f2fe'; this.style.borderColor='#0084FF'" onmouseout="this.style.background='#f8fafc'; this.style.borderColor='#e2e8f0'">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+          Copy Mobile Link
+        </button>
         <button class="btn-blue-glass" id="btnSaveTokens" style="padding:10px 24px; font-size:13px; font-weight:600;">Save Settings</button>
       </div>
+      <p style="font-size:11px; color:#94a3b8; margin-top:12px; text-align:center; line-height:1.5;">Tip: After saving tokens, tap <b>"Copy Mobile Link"</b> and open it on your phone to auto-sync tokens without re-entering.</p>
     </div>
   </div>
 
