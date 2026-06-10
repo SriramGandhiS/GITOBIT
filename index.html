@@ -269,6 +269,9 @@
             <span style="font-size:12px; color:#475569; font-weight:600;">ACTIVE PROFILE:</span>
             <span id="activeProfileName" style="color:#0084FF; font-weight:800; font-family:'Fustat'; font-size:14px;">SRIRAM GANDHI</span>
             <span id="activeUsername" style="color:#64748b; font-size:12px;">@SriramGandhiS</span>
+            <button id="btnOpenTokensModal" style="background:none; border:none; color:#64748b; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:4px; border-radius:4px; transition:all 0.2s;" onmouseover="this.style.color='#0084FF'; this.style.background='rgba(0,132,255,0.08)'" onmouseout="this.style.color='#64748b'; this.style.background='none'">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
           </div>
         </div>
 
@@ -462,6 +465,32 @@
 
       <div style="display:flex; justify-content:flex-end; gap:12px;">
         <a href="#" target="_blank" class="btn-blue-glass" id="modalGitLink" style="padding:10px 20px; font-size:13px;">View on GitHub</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECURE TOKEN SETTINGS MODAL -->
+  <div class="modal-backdrop" id="tokensModal">
+    <div class="modal-box">
+      <button class="modal-close" id="tokensModalCloseBtn">&times;</button>
+      <h3 class="font-heading" style="font-size:22px; color:#0f172a; margin-bottom:12px;">Secure Token Settings</h3>
+      <p style="font-size:14px; color:#475569; margin-bottom:24px;">Configure your GitHub Personal Access Tokens (PATs) securely in browser localStorage. They never leave your device.</p>
+      
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-size:12px; font-weight:600; color:#334155; margin-bottom:6px;">Sriram Gandhi Token:</label>
+        <input type="password" id="inputTokenSriram" placeholder="github_pat_..." style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block; font-size:12px; font-weight:600; color:#334155; margin-bottom:6px;">Suriya Kumar Token:</label>
+        <input type="password" id="inputTokenSuriya" placeholder="github_pat_..." style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+      </div>
+      <div style="margin-bottom:24px;">
+        <label style="display:block; font-size:12px; font-weight:600; color:#334155; margin-bottom:6px;">Rizz Architect Token:</label>
+        <input type="password" id="inputTokenRizz" placeholder="github_pat_..." style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
+      </div>
+      
+      <div style="display:flex; justify-content:flex-end; gap:12px;">
+        <button class="btn-blue-glass" id="btnSaveTokens" style="padding:10px 24px; font-size:13px; font-weight:600;">Save Settings</button>
       </div>
     </div>
   </div>

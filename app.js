@@ -795,6 +795,42 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  // Tokens Modal event handlers
+  $("btnOpenTokensModal").addEventListener("click", (e) => {
+    e.stopPropagation();
+    $("inputTokenSriram").value = profiles.sriram.token || "";
+    $("inputTokenSuriya").value = profiles.suriya.token || "";
+    $("inputTokenRizz").value = profiles.rizz.token || "";
+    $("tokensModal").classList.add("open");
+  });
+
+  $("tokensModalCloseBtn").addEventListener("click", () => {
+    $("tokensModal").classList.remove("open");
+  });
+
+  $("tokensModal").addEventListener("click", (e) => {
+    if (e.target === $("tokensModal")) {
+      $("tokensModal").classList.remove("open");
+    }
+  });
+
+  $("btnSaveTokens").addEventListener("click", () => {
+    const sriramVal = $("inputTokenSriram").value.trim();
+    const suriyaVal = $("inputTokenSuriya").value.trim();
+    const rizzVal = $("inputTokenRizz").value.trim();
+    
+    profiles.sriram.token = sriramVal;
+    profiles.suriya.token = suriyaVal;
+    profiles.rizz.token = rizzVal;
+    
+    localStorage.setItem("git_rip_token_sriram", sriramVal);
+    localStorage.setItem("git_rip_token_suriya", suriyaVal);
+    localStorage.setItem("git_rip_token_rizz", rizzVal);
+    
+    $("tokensModal").classList.remove("open");
+    fetchLiveStatus();
+  });
+
   // Clock runner - Indian 12-Hour Clock
   function runClock() {
     const now = new Date();
