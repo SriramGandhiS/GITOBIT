@@ -740,6 +740,7 @@ async function openInsights(repo) {
     $("modalCommitMsg").textContent = `Error: ${err.message}. Ensure GitHub PAT token permissions allow access to this repo.`;
   }
 }
+window.openInsights = openInsights;
 
 // ── PROFILE UTILITIES ──
 function switchProfile(key) {
