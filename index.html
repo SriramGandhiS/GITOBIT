@@ -567,6 +567,22 @@
         <input type="password" id="inputTokenRizz" placeholder="github_pat_..." style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:13px;">
       </div>
       
+      <!-- Change Master Passcode section -->
+      <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; margin-bottom: 24px;">
+        <h4 class="font-heading" style="font-size:14px; color:#0f172a; margin-bottom:12px;">Change Master Passcode</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label style="display:block; font-size:11px; font-weight:600; color:#475569; margin-bottom:4px;">Current Passcode:</label>
+            <input type="password" id="inputCurrentPasscode" placeholder="Old passcode" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px;">
+          </div>
+          <div>
+            <label style="display:block; font-size:11px; font-weight:600; color:#475569; margin-bottom:4px;">New Passcode:</label>
+            <input type="password" id="inputNewPasscode" placeholder="New passcode" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:12px;">
+          </div>
+        </div>
+        <p style="font-size:10px; color:#94a3b8; line-height:1.4;">Leave both blank if you do not wish to change your master passcode.</p>
+      </div>
+      
       <div style="display:flex; justify-content:flex-end; gap:12px; flex-wrap: wrap;">
         <button id="btnCopyMobileLink" style="padding:10px 20px; font-size:12px; font-weight:600; border:1px solid #e2e8f0; background:#f8fafc; color:#334155; border-radius:12px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:6px;" onmouseover="this.style.background='#e0f2fe'; this.style.borderColor='#0084FF'" onmouseout="this.style.background='#f8fafc'; this.style.borderColor='#e2e8f0'">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
@@ -575,6 +591,22 @@
         <button class="btn-blue-glass" id="btnSaveTokens" style="padding:10px 24px; font-size:13px; font-weight:600;">Save Settings</button>
       </div>
       <p style="font-size:11px; color:#94a3b8; margin-top:12px; text-align:center; line-height:1.5;">Tip: After saving tokens, tap <b>"Copy Mobile Link"</b> and open it on your phone to auto-sync tokens without re-entering.</p>
+    </div>
+  </div>
+
+  <!-- MASTER SECURITY GATE OVERLAY -->
+  <div id="siteLockScreen" style="position: fixed; inset: 0; background: radial-gradient(circle at 50% 50%, #0f172a, #020617); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); display: flex; justify-content: center; align-items: center; z-index: 999999; color: #f8fafc; font-family: 'Inter', sans-serif; padding: 20px;">
+    <div style="width: 100%; max-width: 420px; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 40px 32px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); text-align: center;">
+      <div style="font-size: 36px; margin-bottom: 16px;">🔐</div>
+      <h2 class="font-heading" id="lockTitle" style="font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 8px;">Gitobit Security Gate</h2>
+      <p id="lockSubtitle" style="font-size: 13px; color: #94a3b8; margin-bottom: 32px; line-height: 1.5;">This dashboard is locked. Enter your master passcode to gain access.</p>
+      
+      <form id="lockForm" style="display: flex; flex-direction: column; gap: 16px;">
+        <input type="password" id="lockInput" placeholder="Enter passcode" required style="width: 100%; padding: 14px 16px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; color: #fff; font-size: 16px; text-align: center; letter-spacing: 4px; outline: none; transition: all 0.3s;">
+        <button type="submit" id="btnUnlock" class="btn-blue-glass" style="width: 100%; justify-content: center; padding: 14px; font-size: 15px; border-radius: 12px; font-weight: 600;">Unlock Dashboard</button>
+      </form>
+      
+      <div id="lockMessage" style="margin-top: 20px; font-size: 12px; color: #ef4444; font-weight: 600; min-height: 18px;"></div>
     </div>
   </div>
 

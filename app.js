@@ -299,6 +299,112 @@ async function copyMobileLink() {
 }
 window.copyMobileLink = copyMobileLink;
 
+// ── MASTER PASSCODE CRYPTO HELPERS & SECURITY GATE ──
+
+// Hash passcode using SHA-256
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Security Gate Initializer
+async function initSecurityGate() {
+  const lockOverlay = $("siteLockScreen");
+  if (!lockOverlay) return;
+
+  const storedHash = localStorage.getItem("git_rip_master_pass_hash");
+  const isUnlockedSession = sessionStorage.getItem("git_rip_unlocked") === "true";
+
+  // Hide overlay immediately if session already unlocked
+  if (isUnlockedSession) {
+    lockOverlay.style.display = "none";
+    return;
+  }
+
+  const title = $("lockTitle");
+  const subtitle = $("lockSubtitle");
+  const btn = $("btnUnlock");
+  const input = $("lockInput");
+  const msg = $("lockMessage");
+  const form = $("lockForm");
+
+  // Check lockout (lock persistent cross-reloads)
+  let failedAttempts = parseInt(localStorage.getItem("git_rip_lockout_attempts") || "0", 10);
+  if (failedAttempts >= 3) {
+    title.textContent = "Permanently Locked";
+    subtitle.textContent = "Too many failed passcode attempts. Access denied.";
+    input.style.display = "none";
+    btn.style.display = "none";
+    msg.textContent = "Redirecting...";
+    setTimeout(() => {
+      window.location.replace("https://www.google.com");
+    }, 1500);
+    return;
+  }
+
+  const isFirstSetup = !storedHash;
+
+  if (isFirstSetup) {
+    title.textContent = "Setup Master Passcode";
+    subtitle.textContent = "Create a secure master passcode to protect your Gitobit credentials on this device.";
+    input.placeholder = "Choose passcode (min 4 chars)";
+    btn.textContent = "Set Passcode";
+  } else {
+    title.textContent = "Gitobit Security Gate";
+    subtitle.textContent = "This dashboard is locked. Enter your master passcode to gain access.";
+    input.placeholder = "Enter passcode";
+    btn.textContent = "Unlock Dashboard";
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const value = input.value;
+    if (!value) return;
+
+    if (isFirstSetup) {
+      if (value.length < 4) {
+        msg.textContent = "Passcode must be at least 4 characters.";
+        return;
+      }
+      const hashed = await sha256(value);
+      localStorage.setItem("git_rip_master_pass_hash", hashed);
+      sessionStorage.setItem("git_rip_unlocked", "true");
+      lockOverlay.style.display = "none";
+      alert("Master Passcode set successfully! Welcome to Gitobit.");
+      triggerPostUnlock();
+    } else {
+      const hashed = await sha256(value);
+      if (hashed === storedHash) {
+        localStorage.setItem("git_rip_lockout_attempts", "0"); // Reset
+        sessionStorage.setItem("git_rip_unlocked", "true");
+        lockOverlay.style.display = "none";
+        triggerPostUnlock();
+      } else {
+        failedAttempts++;
+        localStorage.setItem("git_rip_lockout_attempts", failedAttempts.toString());
+        input.value = "";
+        if (failedAttempts >= 3) {
+          msg.textContent = "Lockout! Redirecting to Google...";
+          setTimeout(() => {
+            window.location.replace("https://www.google.com");
+          }, 1500);
+        } else {
+          msg.textContent = `Incorrect passcode. ${3 - failedAttempts} attempts remaining.`;
+        }
+      }
+    }
+  });
+}
+
+function triggerPostUnlock() {
+  if (window.startDashboardInit) {
+    window.startDashboardInit();
+  }
+}
+
+
 // Fetch Decrypted Tokens from local server
 async function fetchTokens() {
   // FIRST: Check if encrypted tokens are in the URL hash (mobile share link)
@@ -1065,10 +1171,40 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  $("btnSaveTokens").addEventListener("click", () => {
+  $("btnSaveTokens").addEventListener("click", async () => {
     const sriramVal = $("inputTokenSriram").value.trim();
     const suriyaVal = $("inputTokenSuriya").value.trim();
     const rizzVal = $("inputTokenRizz").value.trim();
+    
+    // Handle master passcode change
+    const currentPass = $("inputCurrentPasscode").value;
+    const newPass = $("inputNewPasscode").value;
+    
+    if (newPass) {
+      const storedHash = localStorage.getItem("git_rip_master_pass_hash");
+      if (storedHash) {
+        if (!currentPass) {
+          alert("Please enter your current master passcode to change it.");
+          return;
+        }
+        const currentHash = await sha256(currentPass);
+        if (currentHash !== storedHash) {
+          alert("Incorrect current passcode. Passcode not changed.");
+          return;
+        }
+      }
+      
+      if (newPass.length < 4) {
+        alert("New passcode must be at least 4 characters.");
+        return;
+      }
+      
+      const newHash = await sha256(newPass);
+      localStorage.setItem("git_rip_master_pass_hash", newHash);
+      alert("Master passcode successfully updated!");
+      $("inputCurrentPasscode").value = "";
+      $("inputNewPasscode").value = "";
+    }
     
     profiles.sriram.token = sriramVal;
     profiles.suriya.token = suriyaVal;
@@ -1117,6 +1253,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   setInterval(runClock, 1000);
   runClock();
 
+  // Initialize master passcode security gate
+  await initSecurityGate();
+
+  // If already unlocked, start dashboard initialization
+  if (sessionStorage.getItem("git_rip_unlocked") === "true") {
+    await startDashboardInit();
+  }
+});
+
+let isDashboardInitialized = false;
+async function startDashboardInit() {
+  if (isDashboardInitialized) return;
+  isDashboardInitialized = true;
+
   // Load tokens and schedules, then init profile
   await fetchTokens();
   await fetchSchedulerConfig();
@@ -1134,4 +1284,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   
   setInterval(fetchLiveStatus, REFRESH_MS);
-});
+}
+window.startDashboardInit = startDashboardInit;
