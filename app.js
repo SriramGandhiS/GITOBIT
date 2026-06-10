@@ -259,10 +259,117 @@ async function fetchStateFile(profile, filename) {
   return null;
 }
 
+// ── TOKEN CHECK HELPER ──
+function hasValidToken() {
+  const profile = profiles[currentProfile];
+  return profile && profile.token && profile.token.length > 10;
+}
+
+function renderNoTokenState() {
+  const banner = $("fetchBanner");
+  banner.className = "fetch-banner error";
+  banner.textContent = "No GitHub token configured. Tap the gear icon above to enter your PAT.";
+
+  // Update metric badges
+  ["badge-dsa", "badge-leetcode", "badge-railflow"].forEach(id => {
+    const el = $(id);
+    if (el) { el.textContent = "no token"; el.className = "pill-status pill-running"; }
+  });
+
+  // Update commit feed
+  const commitFeed = $("commits-list");
+  if (commitFeed) {
+    commitFeed.innerHTML = `
+      <div style="text-align:center; padding: 40px 20px; color:#64748b;">
+        <div style="font-size:28px; margin-bottom:12px;">🔑</div>
+        <div style="font-weight:600; font-size:14px; color:#0f172a; margin-bottom:6px;">GitHub Token Required</div>
+        <div style="font-size:12px; line-height:1.6;">Tap the <b>gear icon</b> (⚙) next to your profile name above to configure your GitHub PAT. Your token is stored securely in your browser and never leaves your device.</div>
+      </div>
+    `;
+  }
+  const commitCount = $("commit-count");
+  if (commitCount) commitCount.textContent = "--";
+
+  // Update repos table
+  const reposTableBody = $("repos-table-body");
+  if (reposTableBody) {
+    reposTableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#64748b; padding:24px;">Configure your GitHub token to view repositories.</td></tr>`;
+  }
+
+  // Update issues
+  const issuesList = $("issues-list");
+  if (issuesList) {
+    issuesList.innerHTML = `
+      <div style="display:flex; gap:12px; align-items:flex-start; padding:12px 0;">
+        <span class="dot-status dot-failure" style="margin-top:4px;"></span>
+        <div>
+          <div style="font-weight:600; font-size:13px; color:#ef4444;">Token not configured</div>
+          <div style="font-size:11px; color:#64748b; margin-top:2px;">Enter your GitHub PAT via the gear icon to enable cloud monitoring.</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Still render weekly schedule (doesn't need API)
+  renderWeeklySchedule();
+}
+
+// Extracted weekly schedule rendering (no token needed)
+function renderWeeklySchedule() {
+  const profile = profiles[currentProfile];
+  const todayIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+  const todayWeekday = todayIST.getDay();
+
+  const weeklyScheduleList = $("weekly-schedule-list");
+  if (weeklyScheduleList) {
+    const daysName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const renderOrder = [1, 2, 3, 4, 5, 6, 0];
+    weeklyScheduleList.innerHTML = renderOrder.map(dayIdx => {
+      const dayName = daysName[dayIdx];
+      const targetRepo = profile.rotation[dayIdx];
+      const isToday = todayWeekday === dayIdx;
+      const dayRowStyle = isToday 
+        ? "background: rgba(0, 132, 255, 0.08); border: 1.5px solid #0084FF; border-radius: 12px; font-weight: bold;"
+        : "border-bottom: 1px solid #f1f5f9;";
+      const targetLabel = targetRepo === "Rest Day" 
+        ? `<span style="color: #64748b; font-style: italic;">Rest Day</span>`
+        : `<span style="color: #0084FF; font-weight: 600;">${targetRepo}</span>`;
+      return `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; margin-bottom: 4px; ${dayRowStyle}">
+          <span style="font-size: 12px; color: #334155;">${dayName}</span>
+          <span style="font-size: 12px; text-align: right;">${targetLabel}</span>
+        </div>
+      `;
+    }).join("");
+  }
+
+  const scheduleBanner = $("schedule-banner-status");
+  if (scheduleBanner) {
+    const todayTarget = profile.rotation[todayWeekday];
+    if (todayTarget === "Rest Day") {
+      scheduleBanner.style.background = "#f1f5f9";
+      scheduleBanner.style.borderColor = "#cbd5e1";
+      scheduleBanner.style.color = "#475569";
+      scheduleBanner.textContent = "Today is a Rest Day. No updates scheduled.";
+    } else {
+      scheduleBanner.style.background = "#e0f2fe";
+      scheduleBanner.style.borderColor = "#bae6fd";
+      scheduleBanner.style.color = "#0369a1";
+      scheduleBanner.textContent = `Active Schedule: ${todayTarget} scheduled for today.`;
+    }
+  }
+}
+
 // ── LIVE ENGINE ──
 async function fetchLiveStatus() {
   const banner = $("fetchBanner");
   const profile = profiles[currentProfile];
+
+  // Guard: If no token, render the no-token state and stop
+  if (!hasValidToken()) {
+    renderNoTokenState();
+    return;
+  }
   
   try {
     const todayIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
@@ -317,7 +424,7 @@ async function fetchLiveStatus() {
         ghCall(profile, `/repos/${profile.username}/${repo}/commits?since=${since}&per_page=15`)
           .then(commits => {
             if (Array.isArray(commits)) {
-              data.repo_details[repo] = commits; // Cache today's commits for table display
+              data.repo_details[repo] = commits;
               return commits.map(c => ({
                 repo,
                 message: c.commit.message.split("\n")[0].slice(0, 60),
@@ -337,7 +444,6 @@ async function fetchLiveStatus() {
     }
     
     const commitsResults = await Promise.all(commitPromises);
-    // Sort combined commits from all repos - limit to exactly top 5
     data.commits_today = commitsResults.flat().sort((a, b) => new Date(b.rawTime) - new Date(a.rawTime));
 
     // 3. Fetch LeetCode status state (Local API / Cloud API)
@@ -356,7 +462,7 @@ async function fetchLiveStatus() {
       const dsaState = await fetchStateFile(profile, "dsa_progress.json");
       if (dsaState) {
         const doneToday = dsaState.done_today?.[todayStr] || [];
-        const target = dsaState.target_today || 10; // Default to 10 if not in state
+        const target = dsaState.target_today || 10;
         data.dsa = {
           todayCount: doneToday.length,
           todayIds: doneToday,
@@ -387,7 +493,11 @@ async function fetchLiveStatus() {
     checkAutoTrigger(data);
   } catch (e) {
     banner.className = "fetch-banner error";
-    banner.textContent = `⚠️ Connection error: ${e.message}. Using cached states.`;
+    banner.textContent = `Connection error: ${e.message}. Retrying...`;
+    // If the error is auth-related, show token setup state
+    if (e.message && (e.message.includes("401") || e.message.includes("403"))) {
+      renderNoTokenState();
+    }
   }
 }
 
@@ -862,6 +972,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   await fetchTokens();
   await fetchSchedulerConfig();
   switchProfile(currentProfile);
+  
+  // Auto-open tokens modal on first visit when no token is configured
+  if (!hasValidToken()) {
+    // Small delay to let the page render first
+    setTimeout(() => {
+      $("inputTokenSriram").value = profiles.sriram.token || "";
+      $("inputTokenSuriya").value = profiles.suriya.token || "";
+      $("inputTokenRizz").value = profiles.rizz.token || "";
+      $("tokensModal").classList.add("open");
+    }, 1500);
+  }
   
   setInterval(fetchLiveStatus, REFRESH_MS);
 });
