@@ -77,6 +77,7 @@ let currentProfile = localStorage.getItem("git_rip_active_profile") || "sriram";
 if (!profiles[currentProfile]) currentProfile = "sriram";
 
 let schedulerTimes = {};
+let masterPasscode = sessionStorage.getItem("git_rip_session_passcode") || "";
 
 // ── DOM ELEMENTS ──
 const $ = (id) => document.getElementById(id);
@@ -330,18 +331,53 @@ async function initSecurityGate() {
   const msg = $("lockMessage");
   const form = $("lockForm");
 
-  // Check lockout (lock persistent cross-reloads)
+  // Check lockout status
   let failedAttempts = parseInt(localStorage.getItem("git_rip_lockout_attempts") || "0", 10);
-  if (failedAttempts >= 3) {
-    title.textContent = "Permanently Locked";
-    subtitle.textContent = "Too many failed passcode attempts. Access denied.";
-    input.style.display = "none";
-    btn.style.display = "none";
-    msg.textContent = "Redirecting...";
-    setTimeout(() => {
-      window.location.replace("https://www.google.com");
-    }, 1500);
-    return;
+  let lockoutTime = parseInt(localStorage.getItem("git_rip_lockout_time") || "0", 10);
+
+  if (lockoutTime > 0) {
+    const elapsed = Date.now() - lockoutTime;
+    if (elapsed < 30000) {
+      startLockoutCountdown(30000 - elapsed);
+      return;
+    } else {
+      localStorage.removeItem("git_rip_lockout_time");
+      localStorage.setItem("git_rip_lockout_attempts", "0");
+      failedAttempts = 0;
+    }
+  }
+
+  function startLockoutCountdown(remainingMs) {
+    input.disabled = true;
+    btn.disabled = true;
+    title.textContent = "Security Lockout";
+    subtitle.textContent = "Too many failed passcode attempts. Please wait.";
+    
+    let secondsLeft = Math.ceil(remainingMs / 1000);
+    msg.textContent = `Try again in ${secondsLeft}s...`;
+    
+    const interval = setInterval(() => {
+      secondsLeft--;
+      if (secondsLeft <= 0) {
+        clearInterval(interval);
+        input.disabled = false;
+        btn.disabled = false;
+        localStorage.removeItem("git_rip_lockout_time");
+        localStorage.setItem("git_rip_lockout_attempts", "0");
+        msg.textContent = "";
+        
+        const currentStoredHash = localStorage.getItem("git_rip_master_pass_hash");
+        if (!currentStoredHash) {
+          title.textContent = "Setup Master Passcode";
+          subtitle.textContent = "Create a secure master passcode to protect your Gitobit credentials on this device.";
+        } else {
+          title.textContent = "Gitobit Security Gate";
+          subtitle.textContent = "This dashboard is locked. Enter your master passcode to gain access.";
+        }
+      } else {
+        msg.textContent = `Try again in ${secondsLeft}s...`;
+      }
+    }, 1000);
   }
 
   const isFirstSetup = !storedHash;
@@ -369,6 +405,8 @@ async function initSecurityGate() {
         return;
       }
       const hashed = await sha256(value);
+      masterPasscode = value;
+      sessionStorage.setItem("git_rip_session_passcode", value);
       localStorage.setItem("git_rip_master_pass_hash", hashed);
       sessionStorage.setItem("git_rip_unlocked", "true");
       lockOverlay.style.display = "none";
@@ -377,6 +415,8 @@ async function initSecurityGate() {
     } else {
       const hashed = await sha256(value);
       if (hashed === storedHash) {
+        masterPasscode = value;
+        sessionStorage.setItem("git_rip_session_passcode", value);
         localStorage.setItem("git_rip_lockout_attempts", "0"); // Reset
         sessionStorage.setItem("git_rip_unlocked", "true");
         lockOverlay.style.display = "none";
@@ -386,10 +426,8 @@ async function initSecurityGate() {
         localStorage.setItem("git_rip_lockout_attempts", failedAttempts.toString());
         input.value = "";
         if (failedAttempts >= 3) {
-          msg.textContent = "Lockout! Redirecting to Google...";
-          setTimeout(() => {
-            window.location.replace("https://www.google.com");
-          }, 1500);
+          localStorage.setItem("git_rip_lockout_time", Date.now().toString());
+          startLockoutCountdown(30000);
         } else {
           msg.textContent = `Incorrect passcode. ${3 - failedAttempts} attempts remaining.`;
         }
@@ -404,41 +442,76 @@ function triggerPostUnlock() {
   }
 }
 
+// Encrypt and save tokens to localStorage using the master passcode
+async function saveEncryptedTokens(sriramToken, suriyaToken, rizzToken) {
+  if (!masterPasscode) return;
+  const tokenData = {
+    sriram: sriramToken || "",
+    suriya: suriyaToken || "",
+    rizz: rizzToken || ""
+  };
+  try {
+    const encrypted = await encryptTokenData(tokenData, masterPasscode);
+    localStorage.setItem("git_rip_encrypted_tokens", encrypted);
+    
+    // Explicitly delete legacy plaintext localStorage items to stay secure
+    localStorage.removeItem("git_rip_token_sriram");
+    localStorage.removeItem("git_rip_token_suriya");
+    localStorage.removeItem("git_rip_token_rizz");
+  } catch (err) {
+    console.error("Failed to encrypt and save tokens:", err);
+  }
+}
 
-// Fetch Decrypted Tokens from local server
+// Fetch Decrypted Tokens from local server & browser storage
 async function fetchTokens() {
   // FIRST: Check if encrypted tokens are in the URL hash (mobile share link)
   await importTokensFromHash();
 
-  // Load from localStorage to enable cloud/Netlify mode
-  try {
+  // Load and decrypt tokens from localStorage using master passcode
+  const encryptedTokens = localStorage.getItem("git_rip_encrypted_tokens");
+  if (encryptedTokens && masterPasscode) {
+    const decoded = await decryptTokenData(encryptedTokens, masterPasscode);
+    if (decoded) {
+      if (decoded.sriram) profiles.sriram.token = decoded.sriram;
+      if (decoded.suriya) profiles.suriya.token = decoded.suriya;
+      if (decoded.rizz) profiles.rizz.token = decoded.rizz;
+    }
+  } else {
+    // Migration check: If old plaintext tokens exist, encrypt them now
     const storedSriram = localStorage.getItem("git_rip_token_sriram");
     const storedSuriya = localStorage.getItem("git_rip_token_suriya");
     const storedRizz = localStorage.getItem("git_rip_token_rizz");
-    if (storedSriram) profiles.sriram.token = storedSriram;
-    if (storedSuriya) profiles.suriya.token = storedSuriya;
-    if (storedRizz) profiles.rizz.token = storedRizz;
-  } catch (e) {
-    console.warn("Could not load tokens from localStorage:", e);
+    if ((storedSriram || storedSuriya || storedRizz) && masterPasscode) {
+      if (storedSriram) profiles.sriram.token = storedSriram;
+      if (storedSuriya) profiles.suriya.token = storedSuriya;
+      if (storedRizz) profiles.rizz.token = storedRizz;
+      await saveEncryptedTokens(storedSriram, storedSuriya, storedRizz);
+    }
   }
 
+  // Check local server backup
   try {
     const res = await fetch(`${LOCAL_API}/api/tokens`);
     if (res.ok) {
       const tokens = await res.json();
-      if (tokens.sriram) {
+      let updated = false;
+      if (tokens.sriram && tokens.sriram !== profiles.sriram.token) {
         profiles.sriram.token = tokens.sriram;
-        localStorage.setItem("git_rip_token_sriram", tokens.sriram);
+        updated = true;
       }
-      if (tokens.suriya) {
+      if (tokens.suriya && tokens.suriya !== profiles.suriya.token) {
         profiles.suriya.token = tokens.suriya;
-        localStorage.setItem("git_rip_token_suriya", tokens.suriya);
+        updated = true;
       }
-      if (tokens.rizz) {
+      if (tokens.rizz && tokens.rizz !== profiles.rizz.token) {
         profiles.rizz.token = tokens.rizz;
-        localStorage.setItem("git_rip_token_rizz", tokens.rizz);
+        updated = true;
       }
-      console.log("Successfully retrieved decrypted local tokens from API and saved to localStorage.");
+      if (updated && masterPasscode) {
+        await saveEncryptedTokens(profiles.sriram.token, profiles.suriya.token, profiles.rizz.token);
+      }
+      console.log("Successfully retrieved decrypted local tokens from API and synchronized cache.");
     }
   } catch (e) {
     console.warn("Could not retrieve local tokens from API. Using cached or local variables.", e);
@@ -1201,6 +1274,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       
       const newHash = await sha256(newPass);
       localStorage.setItem("git_rip_master_pass_hash", newHash);
+      masterPasscode = newPass;
+      sessionStorage.setItem("git_rip_session_passcode", newPass);
       alert("Master passcode successfully updated!");
       $("inputCurrentPasscode").value = "";
       $("inputNewPasscode").value = "";
@@ -1210,9 +1285,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     profiles.suriya.token = suriyaVal;
     profiles.rizz.token = rizzVal;
     
-    localStorage.setItem("git_rip_token_sriram", sriramVal);
-    localStorage.setItem("git_rip_token_suriya", suriyaVal);
-    localStorage.setItem("git_rip_token_rizz", rizzVal);
+    await saveEncryptedTokens(sriramVal, suriyaVal, rizzVal);
     
     $("tokensModal").classList.remove("open");
     fetchLiveStatus();
