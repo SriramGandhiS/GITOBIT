@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gitobit — Live Cloud Automation Monitor</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Absolute Layout and Utility rules */
+    .hero-heading {
+      font-family: 'Fustat', sans-serif;
+      font-weight: 800;
+      font-size: clamp(36px, 6vw, 65px);
+      line-height: 1.05;
+      letter-spacing: -2px;
+      color: #0f172a;
+    }
+    
+    .rating-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 8px 16px;
+      border-radius: 99px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 20px;
+    }
+    
+    .subheadline {
+      font-size: 16px;
+      color: #475569;
+      line-height: 1.6;
+      letter-spacing: -0.5px;
+      max-width: 540px;
+      margin-bottom: 24px;
+    }
+
+    .glassy-orb-container {
+      position: relative;
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .glassy-orb-video {
+      width: 100%;
+      height: auto;
+      mix-blend-mode: screen;
+      transform: scale(1.25);
+      filter: hue-rotate(-55deg) saturate(250%) brightness(1.2) contrast(1.1);
+    }
+    
+    /* Layout grid rules */
+    .hero-container {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 48px;
+      align-items: center;
+      padding-top: 80px;
+      padding-bottom: 60px;
+      position: relative;
+      z-index: 10;
+    }
+
+    @media (max-width: 1024px) {
+      .hero-container {
+        grid-template-columns: 1fr;
+        padding-top: 60px;
+      }
+    }
+
+    /* Mobile navigation adjustments */
+    @media (max-width: 768px) {
+      .strong-liquid-glass {
+        flex-direction: column !important;
+        gap: 16px !important;
+        padding: 16px 20px !important;
+        top: 15px !important;
+        margin: 10px auto !important;
+        align-items: center !important;
+      }
+      .strong-liquid-glass nav {
+        gap: 20px !important;
+        width: 100% !important;
+        justify-content: center !important;
+      }
+      .profile-bar {
+        width: 100% !important;
+        justify-content: center !important;
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        padding-top: 12px;
+      }
+    }
+
+    /* Modal dialog styling */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.4);
+      backdrop-filter: blur(8px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .modal-backdrop.open {
+      display: flex;
+    }
+    .modal-box {
+      width: 100%;
+      max-width: 650px;
+      border-radius: 24px;
+      background: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+      padding: 32px;
+      position: relative;
+    }
+    .modal-close {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      cursor: pointer;
+      font-size: 20px;
+      font-weight: 700;
+      color: #64748b;
+      background: none;
+      border: none;
+    }
+
+    /* Table styles */
+    .saas-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    .saas-table th {
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+      padding: 12px 16px;
+      border-bottom: 1px solid #e2e8f0;
+      font-weight: 700;
+    }
+    .saas-table td {
+      font-size: 13px;
+      padding: 16px;
+      border-bottom: 1px solid #f1f5f9;
+      color: #334155;
+    }
+    .saas-table tr:hover td {
+      background: #f8fafc;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- FIXED NOISE OVERLAY -->
+  <div class="texture-overlay"></div>
+
+  <!-- MAIN WRAPPER WITH LAYERED BACKGROUND GLOW -->
+  <div style="position: relative; width: 100%; min-height: 100vh; overflow-x: hidden; padding: 0 24px;">
+    
+    <!-- TOP-LEFT GRADIENT GLOW -->
+    <div class="glow-wrapper"></div>
+
+    <!-- THE "STRONG LIQUID GLASS" NAVBAR -->
+    <header class="strong-liquid-glass" style="max-width: 1200px; margin: 30px auto 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 12px 24px; position: sticky; top: 30px; z-index: 100;">
+      <div class="font-brand" style="font-size: 22px; color: #0f172a; letter-spacing: -0.5px;">Gitobit</div>
+      
+      <!-- Nav Links -->
+      <nav style="display: flex; gap: 32px; align-items: center; font-weight: 500; font-size: 14px;">
+        <a href="#home" style="color: #334155; text-decoration: none; transition: color 0.2s;">Home</a>
+        <a href="#features" style="color: #334155; text-decoration: none; transition: color 0.2s;">Features</a>
+        <a href="#dashboard" onclick="event.preventDefault(); document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth' });" style="background: rgba(0, 132, 255, 0.1); color: #0084FF; border: 1px solid rgba(0, 132, 255, 0.2); padding: 8px 16px; border-radius: 99px; text-decoration: none; transition: all 0.2s; font-weight: 600; display: inline-block;">Live Dashboard</a>
+      </nav>
+
+      <!-- Profile Trigger bar in glass -->
+      <div class="profile-bar">
+        <div style="text-align: right; font-family: monospace; font-size: 12px;">
+          <span id="clock" style="font-weight: 600; color: #0f172a;">--:--:-- --</span>
+          <span id="istPill" style="margin-left: 6px; color: #0084FF; font-weight: bold;">IST --:-- --</span>
+        </div>
+        <img src="https://github.com/SriramGandhiS.png" alt="Profile" class="profile-avatar-circle" id="activeAvatar">
+      </div>
+    </header>
+
+    <!-- Profile dropdown switch menu -->
+    <div class="profile-menu" id="profileMenu">
+      <div style="font-size: 10px; color: #64748b; padding: 6px 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Switch Profile</div>
+      <div class="profile-menu-item active" data-profile="sriram">
+        <img src="https://github.com/SriramGandhiS.png" alt="Sriram" style="width: 24px; height: 24px; border-radius: 50%;">
+        <div>
+          <div style="font-size: 12px; font-weight: bold; color: #0f172a;">Sriram Gandhi</div>
+          <div style="font-size: 10px; color: #64748b;">@SriramGandhiS</div>
+        </div>
+      </div>
+      <div class="profile-menu-item" data-profile="suriya">
+        <img src="https://github.com/Suriyakumar4036.png" alt="Suriya" style="width: 24px; height: 24px; border-radius: 50%;">
+        <div>
+          <div style="font-size: 12px; font-weight: bold; color: #0f172a;">Suriya Kumar</div>
+          <div style="font-size: 10px; color: #64748b;">@Suriyakumar4036</div>
+        </div>
+      </div>
+      <div class="profile-menu-item" data-profile="rizz">
+        <img src="https://github.com/rizz-architect.png" alt="Rizz" style="width: 24px; height: 24px; border-radius: 50%;">
+        <div>
+          <div style="font-size: 12px; font-weight: bold; color: #0f172a;">Rizz Architect</div>
+          <div style="font-size: 10px; color: #64748b;">@rizz-architect</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <main style="max-width: 1600px; margin: 0 auto;">
+      
+      <!-- HERO SECTION -->
+      <section class="hero-container">
+        <!-- Hero Left Content -->
+        <div>
+          <div class="rating-badge">
+            <span style="display: flex; color: #FF801E;">★★★★★</span>
+            <span>Rated 4.9/5 by 2700+ customers</span>
+          </div>
+
+          <h1 class="hero-heading" style="margin-bottom: 20px;">
+            Work smarter,<br>
+            achieve faster
+          </h1>
+
+          <p class="subheadline">
+            Effortlessly manage your projects, collaborate with your team, and achieve your goals with our intuitive task management tool.
+          </p>
+
+          <button class="btn-blue-glass" onclick="document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth' })">
+            <span>Open Monitor</span>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" style="border-radius:50%; background:#ffffff; color:#0084FF; padding:2px;"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
+
+        <!-- Hero Right: Glassy Orb video -->
+        <div style="display: flex; justify-content: center;">
+          <div class="glassy-orb-container">
+            <video class="glassy-orb-video" autoplay loop muted playsinline>
+              <source src="https://future.co/images/homepage/glassy-orb/orb-purple.webm" type="video/webm">
+              <source src="https://d8j0ntlcm1z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260331_053923_22c0a6a5-313c-474c-85ff-3b50d25e944a.mp4" type="video/mp4">
+            </video>
+          </div>
+        </div>
+      </section>
+
+      <!-- LIVE SYSTEM DASHBOARD (INDIAN 12 HOUR TIME - NO DARK/CYBER) -->
+      <section id="dashboard" style="padding: 60px 0; border-top: 1px solid #f1f5f9; margin-top: 40px;">
+        
+        <!-- Headers and Profile Indicator -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px; flex-wrap:wrap; gap:16px;">
+          <div>
+            <h2 class="font-heading" style="font-size: 28px; color: #0f172a;">Live Integration Dashboard</h2>
+            <div id="fetchBanner" style="font-size:12px; color:#475569; margin-top:6px; font-weight: 500;">Connecting direct pipeline...</div>
+          </div>
+          <div class="saas-card" style="display:flex; align-items:center; gap:12px; padding:10px 20px; border-radius:12px; background:#f8fafc;">
+            <span style="font-size:12px; color:#475569; font-weight:600;">ACTIVE PROFILE:</span>
+            <span id="activeProfileName" style="color:#0084FF; font-weight:800; font-family:'Fustat'; font-size:14px;">SRIRAM GANDHI</span>
+            <span id="activeUsername" style="color:#64748b; font-size:12px;">@SriramGandhiS</span>
+          </div>
+        </div>
+
+        <!-- 3 main metric boxes (DSA, Leetcode, commits) -->
+        <div class="dashboard-grid" style="margin-bottom: 24px;">
+          
+          <div class="col-4 saas-card" id="dsa-panel">
+            <div class="card-title-row">
+              <span class="font-heading" style="font-size:15px; display:flex; align-items:center; gap:8px; color:#0f172a;">
+                <span class="dot-status dot-unknown" id="dot-dsa"></span>
+                Daily DSA Pusher
+              </span>
+              <span class="pill-status pill-unknown" id="badge-dsa">loading</span>
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px;">
+              <div style="text-align:center; background:#f8fafc; padding:10px; border-radius:10px;">
+                <div style="font-size:9px; color:#475569; text-transform:uppercase; font-weight:600;">Pushed</div>
+                <div class="font-heading" id="dsa-count" style="font-size:18px; color:#0f172a;">--</div>
+              </div>
+              <div style="text-align:center; background:#f8fafc; padding:10px; border-radius:10px;">
+                <div style="font-size:9px; color:#475569; text-transform:uppercase; font-weight:600;">Target</div>
+                <div class="font-heading" id="dsa-target" style="font-size:18px; color:#0f172a;">--</div>
+              </div>
+              <div style="text-align:center; background:#f8fafc; padding:10px; border-radius:10px;">
+                <div style="font-size:9px; color:#475569; text-transform:uppercase; font-weight:600;">All Time</div>
+                <div class="font-heading" id="dsa-alltime" style="font-size:18px; color:#0f172a;">--</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-4 saas-card" id="leetcode-panel">
+            <div class="card-title-row">
+              <span class="font-heading" style="font-size:15px; display:flex; align-items:center; gap:8px; color:#0f172a;">
+                <span class="dot-status dot-unknown" id="dot-leetcode"></span>
+                LeetCode Hourly Sync
+              </span>
+              <span class="pill-status pill-unknown" id="badge-leetcode">loading</span>
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px;">
+              <div style="text-align:center; background:#f8fafc; padding:10px; border-radius:10px;">
+                <div style="font-size:9px; color:#475569; text-transform:uppercase; font-weight:600;">Today</div>
+                <div class="font-heading" id="lc-today" style="font-size:18px; color:#0f172a;">--</div>
+              </div>
+              <div style="text-align:center; background:#f8fafc; padding:10px; border-radius:10px;">
+                <div style="font-size:9px; color:#475569; text-transform:uppercase; font-weight:600;">Index</div>
+                <div class="font-heading" id="lc-index" style="font-size:18px; color:#0f172a;">--</div>
+              </div>
+              <div style="text-align:center; background:#f8fafc; padding:10px; border-radius:10px;">
+                <div style="font-size:9px; color:#475569; text-transform:uppercase; font-weight:600;">Last Run</div>
+                <div class="font-heading" id="lc-lastsync" style="font-size:10px; color:#0f172a; padding-top:6px;">--</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-4 saas-card" id="railflow-panel">
+            <div class="card-title-row">
+              <span class="font-heading" style="font-size:15px; display:flex; align-items:center; gap:8px; color:#0f172a;">
+                <span class="dot-status dot-unknown" id="dot-railflow"></span>
+                RailFlow Telemetry
+              </span>
+              <span class="pill-status pill-unknown" id="badge-railflow">loading</span>
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px;">
+              <div style="text-align:center; background:#f8fafc; padding:10px; border-radius:10px;">
+                <div style="font-size:9px; color:#475569; text-transform:uppercase; font-weight:600;">Day</div>
+                <div class="font-heading" id="rf-day" style="font-size:18px; color:#0f172a;">--</div>
+              </div>
+              <div style="text-align:center; background:#f8fafc; padding:10px; border-radius:10px;">
+                <div style="font-size:9px; color:#475569; text-transform:uppercase; font-weight:600;">Commits</div>
+                <div class="font-heading" id="rf-commits" style="font-size:18px; color:#0f172a;">--</div>
+              </div>
+              <div style="text-align:center; background:#f8fafc; padding:10px; border-radius:10px;">
+                <div style="font-size:9px; color:#475569; text-transform:uppercase; font-weight:600;">Last Sync</div>
+                <div class="font-heading" id="rf-lastrun" style="font-size:10px; color:#0f172a; padding-top:6px;">--</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Grid layout for detailed repository rows and live feeds -->
+        <div class="dashboard-grid">
+          
+          <!-- Repository List Table (5-6 repos) -->
+          <div class="col-8 saas-card" style="min-height:350px;">
+            <div class="card-title-row">
+              <span class="font-heading" style="font-size:16px; color:#0f172a;">Target Repositories</span>
+              <span style="font-size:11px; color:#64748b;">Click rows to view commit file changes & details</span>
+            </div>
+            <div style="overflow-x: auto; margin-top: 10px;">
+              <table class="saas-table">
+                <thead>
+                  <tr>
+                    <th>Repository Link</th>
+                    <th>Commits Today</th>
+                    <th>Automation Status</th>
+                  </tr>
+                </thead>
+                <tbody id="repos-table-body">
+                  <tr>
+                    <td colspan="3" style="text-align:center; color:#64748b;">Loading repositories checklist...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Weekly Schedule Box -->
+          <div class="col-4 saas-card" style="min-height:350px; display:flex; flex-direction:column; justify-content:space-between;">
+            <div>
+              <div class="card-title-row">
+                <span class="font-heading" style="font-size:16px; color:#0f172a;">Weekly Rotation</span>
+                <span style="font-size:11px; color:#64748b;">Rotation Day</span>
+              </div>
+              <div id="weekly-schedule-list" style="margin-top: 10px;">
+                <!-- Filled dynamically by JavaScript -->
+              </div>
+            </div>
+            <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:12px; padding:12px; font-size:12px; color:#0369a1; font-weight:500;" id="schedule-banner-status">
+              Checking scheduled rotation rules...
+            </div>
+          </div>
+
+          <!-- Top 5 Live Commits Feed -->
+          <div class="col-8 saas-card" style="max-height: 400px; overflow-y: auto;">
+            <div class="card-title-row">
+              <span class="font-heading" style="font-size:16px; color:#0f172a;">Top 5 Live Commits</span>
+              <span id="commit-count" style="font-size:11px; color:#0084FF; font-weight:700;">0 commits</span>
+            </div>
+            <div id="commits-list">
+              <div style="text-align:center; padding: 40px; color:#64748b;">Loading git webhook stream...</div>
+            </div>
+          </div>
+
+          <!-- Alert feed / Action status -->
+          <div class="col-4 saas-card" style="max-height: 400px; overflow-y: auto;">
+            <div class="card-title-row">
+              <span class="font-heading" style="font-size:16px; color:#0f172a;">Status Alerts</span>
+              <span id="issues-count" class="pill-status pill-running" style="display:none;">0 ALERT</span>
+            </div>
+            <div id="issues-list">
+              <div style="text-align:center; padding: 40px; color:#64748b;">All automated flows online.</div>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- SAAS TRADEMARK FOOTER -->
+      <footer style="margin-top: 60px; padding-bottom: 60px; border-top: 1px solid #f1f5f9;">
+        <div style="text-align: center; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; margin-top: 40px; margin-bottom: 24px;">
+          Trusted by Top-tier product companies
+        </div>
+        <div class="logo-row">
+          <svg width="120" height="24" viewBox="0 0 120 24" fill="#64748b"><rect x="0" y="4" width="20" height="16" rx="4"/><text x="28" y="16" font-family="sans-serif" font-weight="bold" font-size="12">ACME CORP</text></svg>
+          <svg width="120" height="24" viewBox="0 0 120 24" fill="#64748b"><circle cx="12" cy="12" r="10"/><text x="28" y="16" font-family="sans-serif" font-weight="bold" font-size="12">GLOBEX</text></svg>
+          <svg width="120" height="24" viewBox="0 0 120 24" fill="#64748b"><polygon points="12,2 22,22 2,22"/><text x="28" y="16" font-family="sans-serif" font-weight="bold" font-size="12">VERTEX</text></svg>
+          <svg width="120" height="24" viewBox="0 0 120 24" fill="#64748b"><rect x="2" y="2" width="20" height="20" rx="10"/><text x="28" y="16" font-family="sans-serif" font-weight="bold" font-size="12">ORION</text></svg>
+          <svg width="120" height="24" viewBox="0 0 120 24" fill="#64748b"><rect x="4" y="4" width="16" height="16" rx="2"/><text x="28" y="16" font-family="sans-serif" font-weight="bold" font-size="12">NEXUS</text></svg>
+        </div>
+      </footer>
+
+    </main>
+
+  </div>
+
+  <!-- INSIGHTS DETAIL MODAL -->
+  <div class="modal-backdrop" id="insightsModal">
+    <div class="modal-box">
+      <button class="modal-close" id="modalCloseBtn">&times;</button>
+      <h3 class="font-heading" style="font-size:22px; color:#0f172a; margin-bottom:12px;" id="modalRepoTitle">Repository Details</h3>
+      <p style="font-size:14px; color:#475569; margin-bottom:24px;" id="modalRepoDesc">Detailed code change footprint analysis for today.</p>
+      
+      <div style="background:#f8fafc; border-radius:16px; padding:20px; border:1px solid #e2e8f0; margin-bottom:24px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+          <div>
+            <div style="font-size:10px; color:#64748b; font-weight:700; text-transform:uppercase;">Last Updated</div>
+            <div style="font-size:14px; font-weight:600; color:#0f172a;" id="modalLastUpdated">--</div>
+          </div>
+          <div>
+            <div style="font-size:10px; color:#64748b; font-weight:700; text-transform:uppercase;">Files Changed</div>
+            <div style="font-size:14px; font-weight:600; color:#0f172a;" id="modalFilesChanged">--</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:10px; color:#64748b; font-weight:700; text-transform:uppercase; margin-bottom:6px;">Latest Commit Message</div>
+          <div style="font-size:13px; font-weight:500; color:#334155; line-height:1.5; background:#ffffff; padding:12px; border-radius:8px; border:1px solid #f1f5f9;" id="modalCommitMsg">--</div>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:12px;">
+        <a href="#" target="_blank" class="btn-blue-glass" id="modalGitLink" style="padding:10px 20px; font-size:13px;">View on GitHub</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load live JS sync client -->
+  <script src="app.js"></script>
+</body>
+</html>
