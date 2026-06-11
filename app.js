@@ -610,7 +610,7 @@ async function fetchLiveStatus() {
 
     // 2. Fetch Commits from target repos (since midnight IST)
     const commitPromises = [];
-    const since = `${todayStr}T00:00:00+05:30`;
+    const since = `${todayStr}T00:00:00%2B05:30`;
     const checkRepos = profile.railflowRepo 
       ? [profile.coreRepo, profile.railflowRepo, ...profile.keepers]
       : [profile.coreRepo, ...profile.keepers];
