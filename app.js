@@ -16,21 +16,19 @@ const profiles = {
     token: "",
     coreRepo: "Study-and-Code",
     railflowRepo: "RailFlow",
-    keepers: ["ROI-THE-LEGAL-APP", "Sriram-Portfolio", "Hiresense.ai", "Javino-AI-Authenticity", "SmartSlate"],
+    keepers: [],
     rotation: {
-      1: "Hiresense.ai",
-      2: "Javino-AI-Authenticity",
-      3: "SmartSlate",
-      4: "Sriram-Portfolio",
-      5: "Rest Day",
+      1: "RailFlow",
+      2: "RailFlow",
+      3: "RailFlow",
+      4: "RailFlow",
+      5: "RailFlow",
       6: "Rest Day",
       0: "Rest Day"
     },
     workflows: {
       railflow: { repo: "RailFlow", file: "railflow.yml", name: "RailFlow Orchestrator" },
-      leetcode: { repo: "Study-and-Code", file: "leetcode.yml", name: "LeetCode Solver" },
-      dsa: { repo: "Study-and-Code", file: "dsa.yml", name: "Daily DSA Pusher" },
-      repo_updaters: { repo: "Study-and-Code", file: "repo-updaters.yml", name: "Multi-Repo Updaters" }
+      leetcode: { repo: "Study-and-Code", file: "leetcode.yml", name: "LeetCode Solver" }
     }
   },
   suriya: {
@@ -898,12 +896,12 @@ function render(d) {
 
   // Render specific state metrics (only relevant for Sriram profile)
   if (currentProfile === "sriram") {
-    $("dsa-panel").style.display = "block";
-    $("leetcode-panel").style.display = "block";
-    $("railflow-panel").style.display = "block";
+    if ($("dsa-panel")) $("dsa-panel").style.display = "block";
+    if ($("leetcode-panel")) $("leetcode-panel").style.display = "block";
+    if ($("railflow-panel")) $("railflow-panel").style.display = "block";
 
     // DSA
-    if (d.dsa) {
+    if (d.dsa && $("dsa-count")) {
       $("dsa-count").textContent = `${d.dsa.todayCount} / ${d.dsa.target}`;
       $("dsa-target").textContent = d.dsa.target;
       $("dsa-alltime").textContent = d.dsa.allTime;
